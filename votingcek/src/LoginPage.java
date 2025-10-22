@@ -6,18 +6,18 @@ import javax.swing.*;
 public class LoginPage extends JFrame {
     private JTextField usernameField, studentField;
     private JPasswordField passwordField;
-    private JButton adminLogin, studentLogin;
-    
+    private JButton adminLogin, studentLogin, superAdminLogin; // 🔹 Added button for super admin
+
     // Modern color scheme
-    private static final Color PRIMARY_COLOR = new Color(70, 130, 180);    // Steel Blue
-    private static final Color SECONDARY_COLOR = new Color(240, 248, 255); // Alice Blue
-    private static final Color ACCENT_COLOR = new Color(25, 25, 112);      // Midnight Blue
-    private static final Color TEXT_COLOR = new Color(44, 62, 80);         // Dark Gray Blue
+    private static final Color PRIMARY_COLOR = new Color(70, 130, 180);
+    private static final Color SECONDARY_COLOR = new Color(240, 248, 255);
+    private static final Color ACCENT_COLOR = new Color(25, 25, 112);
+    private static final Color TEXT_COLOR = new Color(44, 62, 80);
 
     public LoginPage() {
         setTitle("College Election Voting System");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(800, 500);
+        setSize(900, 550);
         setLocationRelativeTo(null);
         getContentPane().setBackground(SECONDARY_COLOR);
         setLayout(new BorderLayout(20, 20));
@@ -37,26 +37,32 @@ public class LoginPage extends JFrame {
         // Main Content Panel
         JPanel mainPanel = new JPanel();
         mainPanel.setBackground(SECONDARY_COLOR);
-        mainPanel.setLayout(new GridLayout(1, 2, 20, 0));
+        mainPanel.setLayout(new GridLayout(1, 3, 20, 0)); // 🔹 3 columns now (Super Admin, Admin, Student)
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
 
+        // Super Admin Login Panel 🔹
+        JPanel superAdminPanel = createLoginPanel("Super Admin Login", "super");
+        mainPanel.add(superAdminPanel);
+
         // Admin Login Panel
-        JPanel adminPanel = createLoginPanel("Admin Login", true);
+        JPanel adminPanel = createLoginPanel("Admin Login", "admin");
         mainPanel.add(adminPanel);
 
         // Student Login Panel
-        JPanel studentPanel = createLoginPanel("Student Login", false);
+        JPanel studentPanel = createLoginPanel("Student Login", "student");
         mainPanel.add(studentPanel);
 
         add(mainPanel, BorderLayout.CENTER);
 
+        // Button Actions
         adminLogin.addActionListener(e -> adminLogin());
         studentLogin.addActionListener(e -> studentLogin());
+        superAdminLogin.addActionListener(e -> superAdminLogin()); // 🔹 Added action
 
         setVisible(true);
     }
 
-    private JPanel createLoginPanel(String title, boolean isAdmin) {
+    private JPanel createLoginPanel(String title, String role) {
         JPanel panel = new JPanel();
         panel.setLayout(new GridBagLayout());
         panel.setBackground(Color.WHITE);
@@ -70,19 +76,16 @@ public class LoginPage extends JFrame {
         gbc.anchor = GridBagConstraints.NORTH;
         gbc.insets = new Insets(5, 5, 15, 5);
 
-        // Title
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titleLabel.setForeground(ACCENT_COLOR);
         panel.add(titleLabel, gbc);
 
-        // Fields
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 5, 5, 5);
 
-        if (isAdmin) {
-            // Username
+        if (role.equals("super") || role.equals("admin")) {
             JLabel userLabel = new JLabel("Username:");
             userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             panel.add(userLabel, gbc);
@@ -91,7 +94,6 @@ public class LoginPage extends JFrame {
             usernameField.setPreferredSize(new Dimension(200, 30));
             panel.add(usernameField, gbc);
 
-            // Password
             JLabel passLabel = new JLabel("Password:");
             passLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             panel.add(passLabel, gbc);
@@ -100,11 +102,14 @@ public class LoginPage extends JFrame {
             passwordField.setPreferredSize(new Dimension(200, 30));
             panel.add(passwordField, gbc);
 
-            // Login Button
-            adminLogin = createStyledButton("Admin Login");
-            panel.add(adminLogin, gbc);
-        } else {
-            // Student ID
+            if (role.equals("super")) {
+                superAdminLogin = createStyledButton("Super Admin Login");
+                panel.add(superAdminLogin, gbc);
+            } else {
+                adminLogin = createStyledButton("Admin Login");
+                panel.add(adminLogin, gbc);
+            }
+        } else if (role.equals("student")) {
             JLabel studentLabel = new JLabel("Student Admission No:");
             studentLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             panel.add(studentLabel, gbc);
@@ -113,7 +118,6 @@ public class LoginPage extends JFrame {
             studentField.setPreferredSize(new Dimension(200, 30));
             panel.add(studentField, gbc);
 
-            // Login Button
             studentLogin = createStyledButton("Student Login");
             panel.add(studentLogin, gbc);
         }
@@ -130,7 +134,6 @@ public class LoginPage extends JFrame {
         button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Hover effect
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -144,6 +147,20 @@ public class LoginPage extends JFrame {
         });
 
         return button;
+    }
+
+    // 🔹 Super Admin Login Logic
+    private void superAdminLogin() {
+        String user = usernameField.getText().trim();
+        String pass = new String(passwordField.getPassword()).trim();
+
+        if (user.equals("ramu") && pass.equals("ramu")) {
+            showSuccess("Welcome Super Admin!");
+            new SuperAdminDashboard().setVisible(true);
+            dispose();
+        } else {
+            showError("Invalid Super Admin credentials!");
+        }
     }
 
     private void adminLogin() {
@@ -169,31 +186,12 @@ public class LoginPage extends JFrame {
             }
         } catch (Exception e) {
             showError("Database error: " + e.getMessage());
-            System.err.println("Database error: " + e.getMessage());
         }
-    }
-
-    private void showError(String message) {
-        JOptionPane.showMessageDialog(
-            this,
-            message,
-            "Error",
-            JOptionPane.ERROR_MESSAGE
-        );
-    }
-
-    private void showSuccess(String message) {
-        JOptionPane.showMessageDialog(
-            this,
-            message,
-            "Success",
-            JOptionPane.INFORMATION_MESSAGE
-        );
     }
 
     private void studentLogin() {
         String id = studentField.getText().trim();
-        
+
         if (id.isEmpty()) {
             showError("Please enter your admission number");
             return;
@@ -216,17 +214,24 @@ public class LoginPage extends JFrame {
             }
         } catch (Exception e) {
             showError("Database error: " + e.getMessage());
-            System.err.println("Database error: " + e.getMessage());
         }
+    }
+
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
 
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
-            System.err.println("Error setting look and feel: " + e.getMessage());
+            System.err.println("LookAndFeel error: " + e.getMessage());
         }
-        
-        SwingUtilities.invokeLater(() -> new LoginPage());
+
+        SwingUtilities.invokeLater(LoginPage::new);
     }
 }
