@@ -1,4 +1,5 @@
 import java.awt.*;
+import java.sql.*;
 import javax.swing.*;
 public class LoginPage extends JFrame {
     private JTextField usernameField;
@@ -139,12 +140,38 @@ private void handleLogin() {
             showError("Invalid Super Admin credentials!");
         }
     } else if (role.equals("Admin")) {
-        if (user.equals("admin") && pass.equals("admin")) {
-            showSuccess("Welcome Admin!");
-            new AdminDashboard().setVisible(true);
-            dispose();
-        } else {
-            showError("Invalid Admin credentials!");
+        if (user.isEmpty() || pass.isEmpty()) {
+            showError("Please enter username and password for admin login.");
+            return;
+        }
+
+        // Authenticate admin against the database with clearer diagnostics
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement("SELECT password FROM admin WHERE username = ?")) {
+
+            ps.setString(1, user);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    showError("No admin account found for username: '" + user + "'.\n" +
+                              "Create one using the SQL in README or via Super_Admin dashboard.");
+                    return;
+                }
+
+                String dbPass = rs.getString("password");
+                if (dbPass == null) dbPass = "";
+
+                if (dbPass.equals(pass)) {
+                    showSuccess("Welcome Admin!");
+                    new AdminDashboard().setVisible(true);
+                    dispose();
+                } else {
+                    showError("Incorrect password for user '" + user + "'.\n" +
+                              "If you forgot the password, reset it from Super_Admin dashboard or update it in the database.");
+                }
+            }
+
+        } catch (SQLException e) {
+            showError("Database error: " + e.getMessage() + "\nPlease ensure MySQL is running and the 'college_voting' database exists.");
         }
     }
 }

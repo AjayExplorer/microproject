@@ -1,11 +1,11 @@
-import javax.swing.*;
-import javax.swing.border.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 import java.util.*;
 import java.util.List;
 import java.util.Timer;
+import javax.swing.*;
+import javax.swing.border.*;
 
 public class StudentVotingPage extends JFrame {
     // Modern Color Palette
@@ -285,7 +285,8 @@ public class StudentVotingPage extends JFrame {
                 showSuccess("Your votes have been cast successfully!");
                 stopTimer();
                 dispose();
-                new LoginPage().setVisible(true);
+                // Return to Admin Dashboard after voting completes
+                new AdminDashboard().setVisible(true);
 
             } catch (SQLException e) {
                 con.rollback();

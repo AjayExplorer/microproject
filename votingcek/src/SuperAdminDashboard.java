@@ -10,6 +10,9 @@ public class SuperAdminDashboard extends JFrame {
     private JComboBox<String> adminAssignBox;
     private JButton addAdminBtn, addStudentBtn, viewAdminsBtn, viewStudentsBtn;
     private JTable dataTable;
+    private JTextArea bulkStudentsArea;
+    private JButton bulkAddBtn;
+    private JButton startElectionBtn, endElectionBtn;
 
     // Colors (same as LoginPage)
     private static final Color PRIMARY_COLOR = new Color(70, 130, 180);
@@ -98,13 +101,49 @@ public class SuperAdminDashboard extends JFrame {
         viewStudentsBtn = createButton("View Students");
         bottomPanel.add(viewAdminsBtn);
         bottomPanel.add(viewStudentsBtn);
-        add(bottomPanel, BorderLayout.SOUTH);
+    add(bottomPanel, BorderLayout.SOUTH);
+
+    // Right side: Bulk student import and election controls
+    JPanel rightPanel = new JPanel();
+    rightPanel.setLayout(new BorderLayout(10,10));
+    rightPanel.setBackground(SECONDARY_COLOR);
+    rightPanel.setBorder(BorderFactory.createEmptyBorder(20,20,20,20));
+
+    // Bulk add students area
+    JPanel bulkPanel = new JPanel(new BorderLayout(5,5));
+    bulkPanel.setBackground(Color.WHITE);
+    bulkPanel.setBorder(BorderFactory.createTitledBorder("Bulk Add Students (one ID per line)"));
+    bulkStudentsArea = new JTextArea(8, 20);
+    JScrollPane bulkScroll = new JScrollPane(bulkStudentsArea);
+    bulkPanel.add(bulkScroll, BorderLayout.CENTER);
+    bulkAddBtn = createButton("Add Bulk Students");
+    bulkPanel.add(bulkAddBtn, BorderLayout.SOUTH);
+
+    // Election control panel
+    JPanel electionPanel = new JPanel(new GridLayout(1,2,10,10));
+    electionPanel.setBackground(SECONDARY_COLOR);
+    startElectionBtn = createButton("Start Election");
+    endElectionBtn = createButton("End Election");
+    startElectionBtn.setBackground(new Color(39, 174, 96)); // green
+    endElectionBtn.setBackground(new Color(231, 76, 60)); // red
+    startElectionBtn.setForeground(Color.WHITE);
+    endElectionBtn.setForeground(Color.WHITE);
+    electionPanel.add(startElectionBtn);
+    electionPanel.add(endElectionBtn);
+
+    rightPanel.add(bulkPanel, BorderLayout.CENTER);
+    rightPanel.add(electionPanel, BorderLayout.SOUTH);
+
+    add(rightPanel, BorderLayout.EAST);
 
         // Event Handlers
         addAdminBtn.addActionListener(e -> addAdmin());
         addStudentBtn.addActionListener(e -> addStudent());
         viewAdminsBtn.addActionListener(e -> loadTable("admin"));
         viewStudentsBtn.addActionListener(e -> loadTable("student"));
+    bulkAddBtn.addActionListener(e -> bulkAddStudents());
+    startElectionBtn.addActionListener(e -> setElectionActive(true));
+    endElectionBtn.addActionListener(e -> setElectionActive(false));
 
         // Create and add logout button
         JButton logoutBtn = createButton("Logout");
@@ -114,6 +153,75 @@ public class SuperAdminDashboard extends JFrame {
 
         loadAdminDropdown();
         loadTable("admin"); // Show admin list by default
+        ensureElectionTableExists();
+    }
+
+    /**
+     * Ensure election_status table exists and has a single row (id=1).
+     */
+    private void ensureElectionTableExists() {
+        try (Connection con = DBConnection.getConnection();
+             Statement st = con.createStatement()) {
+
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS election_status (id INT PRIMARY KEY, active TINYINT(1))");
+            // ensure a row exists
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO election_status(id, active) SELECT 1, 0 WHERE NOT EXISTS (SELECT 1 FROM election_status WHERE id=1)")) {
+                ps.executeUpdate();
+            }
+
+        } catch (SQLException e) {
+            showError("Error ensuring election table: " + e.getMessage());
+        }
+    }
+
+    private void setElectionActive(boolean active) {
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement("UPDATE election_status SET active = ? WHERE id = 1")) {
+            ps.setInt(1, active ? 1 : 0);
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                showSuccess("Election " + (active ? "started" : "ended") + " successfully.");
+            } else {
+                showError("Failed to update election status.");
+            }
+        } catch (SQLException e) {
+            showError("Error updating election status: " + e.getMessage());
+        }
+    }
+
+    private void bulkAddStudents() {
+        String text = bulkStudentsArea.getText();
+        if (text.trim().isEmpty()) {
+            showError("Please paste student IDs (one per line) into the bulk area.");
+            return;
+        }
+
+        String[] lines = text.split("\\r?\\n");
+        int added = 0;
+        int skipped = 0;
+
+        try (Connection con = DBConnection.getConnection()) {
+            con.setAutoCommit(false);
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO student(student_id, status) VALUES (?, 'not_voted')")) {
+                for (String raw : lines) {
+                    String id = raw.trim();
+                    if (id.isEmpty()) continue;
+                    try {
+                        ps.setString(1, id);
+                        ps.executeUpdate();
+                        added++;
+                    } catch (SQLException ex) {
+                        // likely duplicate primary key; skip
+                        skipped++;
+                    }
+                }
+            }
+            con.commit();
+            showSuccess(String.format("Bulk import finished: %d added, %d skipped." , added, skipped));
+            loadTable("student");
+        } catch (SQLException e) {
+            showError("Error during bulk import: " + e.getMessage());
+        }
     }
 
     private JButton createButton(String text) {
