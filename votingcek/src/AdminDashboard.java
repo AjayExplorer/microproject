@@ -10,6 +10,7 @@ public class AdminDashboard extends JFrame {
     private static final Color ACCENT_COLOR = new Color(25, 25, 112);      // Midnight Blue
     private static final Color TEXT_COLOR = new Color(44, 62, 80);         // Dark Gray Blue
     private static final Color SUCCESS_COLOR = new Color(46, 204, 113);    // Green
+    private boolean isElectionActive = false;
 
     private JPanel resultsPanel;
     private JLabel totalVotesLabel;
@@ -163,28 +164,73 @@ public class AdminDashboard extends JFrame {
     }
 
     private void loadResults() {
-    resultsPanel.removeAll();
-
-        try (Connection con = DBConnection.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(
-                 "SELECT candidate_id, name, position, votes, " +
-                 "(SELECT COUNT(*) FROM student WHERE status='voted') as total_voters " +
-                 "FROM candidate ORDER BY votes DESC")) {
-            
-            if (rs.next()) {
-                int totalVoters = rs.getInt("total_voters");
-                totalVotesLabel.setText(String.format("Total Voters: %d", totalVoters));
-                
-                do {
-                    int candidateId = rs.getInt("candidate_id");
-                    String name = rs.getString("name");
-                    String position = rs.getString("position");
-                    int votes = rs.getInt("votes");
-                    addResultCard(candidateId, name, position, votes, totalVoters);
-                } while (rs.next());
+        resultsPanel.removeAll();
+        
+        try (Connection con = DBConnection.getConnection()) {
+            // First check if election is active
+            try (PreparedStatement ps = con.prepareStatement("SELECT active FROM election_status WHERE id = 1")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        isElectionActive = rs.getInt("active") == 1;
+                    }
+                }
             }
-            
+
+            if (isElectionActive) {
+                // Show election in progress message
+                JPanel messagePanel = new JPanel();
+                messagePanel.setLayout(new BoxLayout(messagePanel, BoxLayout.Y_AXIS));
+                messagePanel.setBackground(new Color(255, 248, 225)); // Light yellow background
+                messagePanel.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(251, 140, 0), 1), // Orange border
+                    BorderFactory.createEmptyBorder(20, 20, 20, 20)
+                ));
+
+                JLabel statusLabel = new JLabel("Election is in Progress", SwingConstants.CENTER);
+                statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+                statusLabel.setForeground(new Color(230, 81, 0)); // Dark orange text
+                statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+                JLabel infoLabel = new JLabel("<html><center>Vote counts are hidden during active election<br>Results will be displayed when the election ends</center></html>", 
+                    SwingConstants.CENTER);
+                infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+                infoLabel.setForeground(TEXT_COLOR);
+                infoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+                messagePanel.add(statusLabel);
+                messagePanel.add(Box.createRigidArea(new Dimension(0, 15)));
+                messagePanel.add(infoLabel);
+
+                resultsPanel.add(messagePanel);
+                totalVotesLabel.setText("Election in Progress - Results Hidden");
+            } else {
+                // Load results when election is not active
+                try (Statement st = con.createStatement();
+                     ResultSet rs = st.executeQuery(
+                         "SELECT candidate_id, name, position, votes, " +
+                         "(SELECT COUNT(*) FROM student WHERE status='voted') as total_voters " +
+                         "FROM candidate ORDER BY votes DESC")) {
+                    
+                    if (rs.next()) {
+                        int totalVoters = rs.getInt("total_voters");
+                        totalVotesLabel.setText(String.format("Total Voters: %d", totalVoters));
+                        
+                        do {
+                            int candidateId = rs.getInt("candidate_id");
+                            String name = rs.getString("name");
+                            String position = rs.getString("position");
+                            int votes = rs.getInt("votes");
+                            addResultCard(candidateId, name, position, votes, totalVoters);
+                        } while (rs.next());
+                    } else {
+                        JLabel msgLabel = new JLabel("No candidates found", SwingConstants.CENTER);
+                        msgLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+                        msgLabel.setForeground(TEXT_COLOR);
+                        resultsPanel.add(msgLabel);
+                        totalVotesLabel.setText("No Data Available");
+                    }
+                }
+            }
         } catch (SQLException e) {
             showError("Database error while loading results: " + e.getMessage());
         }
@@ -218,23 +264,29 @@ public class AdminDashboard extends JFrame {
         positionLabel.setFont(new Font("Segoe UI", Font.ITALIC, 14));
         positionLabel.setForeground(TEXT_COLOR);
         
-    // Bottom row: Votes, percentage and Delete button for admins
+        // Bottom row: Votes and percentage
         JPanel bottomRow = new JPanel(new BorderLayout(10, 0));
         bottomRow.setOpaque(false);
         
         double percentage = totalVoters > 0 ? (votes * 100.0) / totalVoters : 0;
-        JLabel votesLabel = new JLabel(String.format("Votes: %d (%.1f%%)", votes, percentage));
+        
+        // Show votes only if election is active
+        String votesText = !isElectionActive ? 
+            String.format("Votes: %d (%.1f%%)", votes, percentage) :
+            "Results hidden during active election";
+        JLabel votesLabel = new JLabel(votesText);
         votesLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        votesLabel.setForeground(votes > 0 ? SUCCESS_COLOR : TEXT_COLOR);
+        votesLabel.setForeground(!isElectionActive && votes > 0 ? SUCCESS_COLOR : TEXT_COLOR);
         
         bottomRow.add(votesLabel, BorderLayout.WEST);
         
         // Progress bar for votes
         JProgressBar progress = new JProgressBar(0, Math.max(1, totalVoters));
-        progress.setValue(votes);
+        progress.setValue(!isElectionActive ? votes : 0);
         progress.setStringPainted(true);
-        progress.setString(String.format("%.1f%%", percentage));
+        progress.setString(!isElectionActive ? String.format("%.1f%%", percentage) : "Hidden during election");
         progress.setForeground(SUCCESS_COLOR);
+        progress.setVisible(!isElectionActive); // Hide progress bar completely during active election
         progress.setPreferredSize(new Dimension(150, 20));
         bottomRow.add(progress, BorderLayout.EAST);
 
