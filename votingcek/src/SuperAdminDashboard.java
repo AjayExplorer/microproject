@@ -32,7 +32,7 @@ public class SuperAdminDashboard extends JFrame {
         header.setFont(new Font("Segoe UI", Font.BOLD, 26));
         header.setOpaque(true);
         header.setBackground(PRIMARY_COLOR);
-        header.setForeground(Color.WHITE);
+        header.setForeground(Color.BLACK);
         header.setPreferredSize(new Dimension(900, 70));
         add(header, BorderLayout.NORTH);
 
@@ -126,8 +126,8 @@ public class SuperAdminDashboard extends JFrame {
     endElectionBtn = createButton("End Election");
     startElectionBtn.setBackground(new Color(39, 174, 96)); // green
     endElectionBtn.setBackground(new Color(231, 76, 60)); // red
-    startElectionBtn.setForeground(Color.WHITE);
-    endElectionBtn.setForeground(Color.WHITE);
+    startElectionBtn.setForeground(Color.BLACK);
+    endElectionBtn.setForeground(Color.BLACK);
     electionPanel.add(startElectionBtn);
     electionPanel.add(endElectionBtn);
 
@@ -227,7 +227,7 @@ public class SuperAdminDashboard extends JFrame {
     private JButton createButton(String text) {
         JButton btn = new JButton(text);
         btn.setBackground(PRIMARY_COLOR);
-        btn.setForeground(Color.WHITE);
+        btn.setForeground(Color.BLACK);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -351,7 +351,7 @@ public class SuperAdminDashboard extends JFrame {
              PreparedStatement st = con.prepareStatement("SELECT username FROM admin ORDER BY username");
              ResultSet rs = st.executeQuery()) {
             while (rs.next()) {
-                adminAssignBox.addItem(rs.getString("username"));
+                adminAssignBox.addItem(rs.getString("Username"));
             }
         } catch (SQLException e) {
             showError("Error loading admin list: " + e.getMessage());
@@ -412,7 +412,7 @@ public class SuperAdminDashboard extends JFrame {
             dataTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             dataTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
             dataTable.getTableHeader().setBackground(PRIMARY_COLOR);
-            dataTable.getTableHeader().setForeground(Color.WHITE);
+            dataTable.getTableHeader().setForeground(Color.BLACK);
             dataTable.setRowHeight(30);
             dataTable.setShowGrid(true);
             dataTable.setGridColor(new Color(230, 230, 230));

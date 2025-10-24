@@ -29,7 +29,7 @@ public class LoginPage extends JFrame {
 
         JLabel title = new JLabel("College Election Voting System", SwingConstants.CENTER);
         title.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        title.setForeground(Color.WHITE);
+        title.setForeground(Color.BLACK);
         headerPanel.add(title, BorderLayout.CENTER);
         add(headerPanel, BorderLayout.NORTH);
 

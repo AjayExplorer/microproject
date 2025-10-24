@@ -68,11 +68,11 @@ public class AdminDashboard extends JFrame {
 
         JLabel titleLabel = new JLabel("Election Dashboard", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setForeground(Color.BLACK);
 
         totalVotesLabel = new JLabel("Total Votes: 0");
         totalVotesLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        totalVotesLabel.setForeground(Color.WHITE);
+        totalVotesLabel.setForeground(Color.BLACK);
 
         headerPanel.add(titleLabel, BorderLayout.CENTER);
         headerPanel.add(totalVotesLabel, BorderLayout.EAST);
@@ -133,7 +133,7 @@ public class AdminDashboard extends JFrame {
     private JButton createStyledButton(String text) {
         JButton button = new JButton(text);
         button.setBackground(PRIMARY_COLOR);
-        button.setForeground(Color.WHITE);
+        button.setForeground(Color.BLACK);
         button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
